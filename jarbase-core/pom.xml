@@ -21,6 +21,12 @@
             <artifactId>snakeyaml</artifactId>
         </dependency>
 
+        <!-- Reads and writes JSON: agents' hook input and their settings files. -->
+        <dependency>
+            <groupId>com.google.code.gson</groupId>
+            <artifactId>gson</artifactId>
+        </dependency>
+
         <!-- Test-only libraries. Versions come from the Spring Boot BOM in the parent. -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>

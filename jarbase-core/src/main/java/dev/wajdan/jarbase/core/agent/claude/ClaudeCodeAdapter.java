@@ -1,16 +1,18 @@
 package dev.wajdan.jarbase.core.agent.claude;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+import com.google.gson.JsonSyntaxException;
 import dev.wajdan.jarbase.core.agent.AgentAdapter;
 import dev.wajdan.jarbase.core.agent.PushIntent;
 import dev.wajdan.jarbase.core.hook.HookDecision;
+import dev.wajdan.jarbase.core.install.Change;
+import dev.wajdan.jarbase.core.install.ProjectFiles;
 import dev.wajdan.jarbase.core.json.JsonText;
 import java.nio.file.Path;
-import java.util.Map;
+import java.util.List;
 import java.util.Optional;
-import org.yaml.snakeyaml.LoaderOptions;
-import org.yaml.snakeyaml.Yaml;
-import org.yaml.snakeyaml.constructor.SafeConstructor;
-import org.yaml.snakeyaml.error.YAMLException;
 
 /**
  * Claude Code's {@code PreToolUse} hook. Claude sends JSON on standard input, for example
@@ -19,6 +21,9 @@ import org.yaml.snakeyaml.error.YAMLException;
  */
 public final class ClaudeCodeAdapter implements AgentAdapter {
 
+    private static final String CLAUDE_MD = "CLAUDE.md";
+    private static final String IMPORT_LINE = "@AGENTS.md";
+
     @Override
     public String id() {
         return "claude-code";
@@ -26,20 +31,29 @@ public final class ClaudeCodeAdapter implements AgentAdapter {
 
     @Override
     public Optional<PushIntent> parseBeforeShellCommand(String stdin) {
-        Object parsed;
+        JsonElement parsed;
         try {
-            // JSON is a subset of YAML, so the YAML reader we already have reads it safely.
-            parsed = new Yaml(new SafeConstructor(new LoaderOptions())).load(stdin);
-        } catch (YAMLException e) {
+            parsed = JsonParser.parseString(stdin);
+        } catch (JsonSyntaxException e) {
             return Optional.empty();
         }
-        if (!(parsed instanceof Map<?, ?> payload) || !"Bash".equals(payload.get("tool_name"))) {
+        if (!parsed.isJsonObject()) {
             return Optional.empty();
         }
-        if (!(payload.get("tool_input") instanceof Map<?, ?> input) || !(input.get("command") instanceof String command)) {
+        JsonObject payload = parsed.getAsJsonObject();
+        if (!"Bash".equals(string(payload, "tool_name"))) {
             return Optional.empty();
         }
-        Path directory = payload.get("cwd") instanceof String cwd && !cwd.isBlank() ? Path.of(cwd) : Path.of(".");
+        JsonElement input = payload.get("tool_input");
+        if (input == null || !input.isJsonObject()) {
+            return Optional.empty();
+        }
+        String command = string(input.getAsJsonObject(), "command");
+        if (command == null) {
+            return Optional.empty();
+        }
+        String cwd = string(payload, "cwd");
+        Path directory = cwd == null || cwd.isBlank() ? Path.of(".") : Path.of(cwd);
         return Optional.of(new PushIntent(command, directory));
     }
 
@@ -51,5 +65,33 @@ public final class ClaudeCodeAdapter implements AgentAdapter {
         return "{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\","
                 + "\"permissionDecision\":\"deny\","
                 + "\"permissionDecisionReason\":" + JsonText.quote(decision.reason()) + "}}\n";
+    }
+
+    @Override
+    public List<Change> install(Path projectRoot) {
+        return List.of(ClaudeSettings.ensureHook(projectRoot), ensureClaudeMdImport(projectRoot));
+    }
+
+    /**
+     * Claude Code reads {@code CLAUDE.md}, not {@code AGENTS.md}. A line {@code @AGENTS.md} in it pulls
+     * the shared instructions in, so Claude sees the same rules as every other agent.
+     */
+    private static Change ensureClaudeMdImport(Path root) {
+        Optional<String> existing = ProjectFiles.read(root, CLAUDE_MD);
+        if (existing.isEmpty() || existing.get().isBlank()) {
+            return ProjectFiles.write(root, CLAUDE_MD, IMPORT_LINE + "\n");
+        }
+        boolean alreadyImported = existing.get().lines().anyMatch(line -> line.strip().equals(IMPORT_LINE));
+        if (alreadyImported) {
+            return Change.of(Change.Kind.UNCHANGED, CLAUDE_MD);
+        }
+        return ProjectFiles.write(root, CLAUDE_MD, existing.get().stripTrailing() + "\n\n" + IMPORT_LINE + "\n");
+    }
+
+    private static String string(JsonObject object, String key) {
+        JsonElement value = object.get(key);
+        return value != null && value.isJsonPrimitive() && value.getAsJsonPrimitive().isString()
+                ? value.getAsString()
+                : null;
     }
 }

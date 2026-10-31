@@ -1,6 +1,9 @@
 package dev.wajdan.jarbase.core.agent;
 
 import dev.wajdan.jarbase.core.hook.HookDecision;
+import dev.wajdan.jarbase.core.install.Change;
+import java.nio.file.Path;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -29,4 +32,12 @@ public interface AgentAdapter {
      * @return the text to print; empty when the push is allowed and nothing needs to be said
      */
     String render(HookDecision decision);
+
+    /**
+     * Registers the hook with this agent and writes any agent-specific files. Must be safe to run twice.
+     * The shared tool files (the hook script under {@code .jarbase/}) are already in place when this runs.
+     *
+     * @param projectRoot the repository's top folder
+     */
+    List<Change> install(Path projectRoot);
 }

@@ -1,5 +1,6 @@
 package dev.wajdan.jarbase.core.hook;
 
+import dev.wajdan.jarbase.core.Jarbase;
 import dev.wajdan.jarbase.core.git.GitChanges;
 import dev.wajdan.jarbase.core.sync.AffectedPage;
 import dev.wajdan.jarbase.core.sync.AffectedReport;
@@ -53,7 +54,8 @@ public final class PrePushCheck {
                     .append("   (sources: ").append(String.join(", ", affected.matchedSources())).append(")\n");
         }
         out.append("Update ").append(stale.size() == 1 ? "it" : "them")
-                .append(", then run `jarbase affected --uncommitted --base ").append(base).append("` to check.\n");
+                .append(", then run `").append(Jarbase.CLI_COMMAND).append(" affected --uncommitted --base ")
+                .append(base).append("` to check.\n");
         out.append("Show the user the docs diff before committing it, then commit the docs with the code and push again.\n");
         out.append("If no docs change is needed, tell the user why and push again; the next push is allowed.");
         return out.toString();
