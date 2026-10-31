@@ -15,6 +15,12 @@
     <description>Framework-free logic: docs model, sources matching, validation. No Spring here, by rule.</description>
 
     <dependencies>
+        <!-- Reads the YAML block at the top of each page. Version comes from the Spring Boot BOM in the parent. -->
+        <dependency>
+            <groupId>org.yaml</groupId>
+            <artifactId>snakeyaml</artifactId>
+        </dependency>
+
         <!-- Test-only libraries. Versions come from the Spring Boot BOM in the parent. -->
         <dependency>
             <groupId>org.junit.jupiter</groupId>
