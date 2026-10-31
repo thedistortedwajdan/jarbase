@@ -39,5 +39,6 @@
     <modules>
         <module>jarbase-core</module>
         <module>jarbase-cli</module>
+        <module>jarbase-maven-plugin</module>
     </modules>
 </project>

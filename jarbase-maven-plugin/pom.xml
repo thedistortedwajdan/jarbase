@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.github.thedistortedwajdan.jarbase</groupId>
+        <artifactId>jarbase-parent</artifactId>
+        <version>0.1.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>jarbase-maven-plugin</artifactId>
+    <!-- "maven-plugin" packaging makes Maven generate the plugin descriptor (the list of goals). -->
+    <packaging>maven-plugin</packaging>
+    <name>jarbase-maven-plugin</name>
+    <description>Installs jarbase into a project and checks its docs from Maven.</description>
+
+    <properties>
+        <maven.version>3.9.14</maven.version>
+        <maven-plugin-tools.version>3.15.2</maven-plugin-tools.version>
+    </properties>
+
+    <dependencies>
+        <!-- The logic the goals call. -->
+        <dependency>
+            <groupId>io.github.thedistortedwajdan.jarbase</groupId>
+            <artifactId>jarbase-core</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
+        <!--
+            The runnable jar the hook script starts. Declaring it here makes Maven download it into the local
+            repository whenever the plugin itself is downloaded (for example when the project is loaded or
+            reloaded in an IDE). Nothing from it is used by the goals; the exclusion keeps it to this one file.
+        -->
+        <dependency>
+            <groupId>io.github.thedistortedwajdan.jarbase</groupId>
+            <artifactId>jarbase-cli</artifactId>
+            <version>${project.version}</version>
+            <classifier>all</classifier>
+            <scope>runtime</scope>
+            <exclusions>
+                <exclusion>
+                    <groupId>*</groupId>
+                    <artifactId>*</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+
+        <!-- Provided by Maven itself at run time. -->
+        <dependency>
+            <groupId>org.apache.maven</groupId>
+            <artifactId>maven-plugin-api</artifactId>
+            <version>${maven.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.maven.plugin-tools</groupId>
+            <artifactId>maven-plugin-annotations</artifactId>
+            <version>${maven-plugin-tools.version}</version>
+            <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-plugin-plugin</artifactId>
+                <version>${maven-plugin-tools.version}</version>
+            </plugin>
+        </plugins>
+    </build>
+</project>
