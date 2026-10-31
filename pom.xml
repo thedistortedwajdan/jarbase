@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <!-- Coordinates: who we are (groupId), what this is (artifactId), which release (version). -->
+    <groupId>dev.wajdan.jarbase</groupId>
+    <artifactId>jarbase-parent</artifactId>
+    <version>0.1.0-SNAPSHOT</version>
+    <!-- "pom" packaging = this project builds no jar itself; it only holds shared settings for the modules. -->
+    <packaging>pom</packaging>
+
+    <name>jarbase</name>
+    <description>Living documentation for Java and Spring Boot apps.</description>
+
+    <properties>
+        <!-- Compile for Java 21 bytecode, even though we build with JDK 25. -->
+        <maven.compiler.release>21</maven.compiler.release>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <spring-boot.version>4.1.2</spring-boot.version>
+    </properties>
+
+    <!-- dependencyManagement only fixes versions. It adds nothing to a module until the module asks for it. -->
+    <dependencyManagement>
+        <dependencies>
+            <!-- Spring Boot's "bill of materials": one import that pins compatible versions of ~hundreds of libraries. -->
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-dependencies</artifactId>
+                <version>${spring-boot.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
+
+    <!-- The parent builds these in dependency order: core first, then cli (which needs core). -->
+    <modules>
+        <module>jarbase-core</module>
+        <module>jarbase-cli</module>
+    </modules>
+</project>
