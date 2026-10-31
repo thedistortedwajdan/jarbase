@@ -5,7 +5,7 @@
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>dev.wajdan.jarbase</groupId>
+        <groupId>io.github.thedistortedwajdan.jarbase</groupId>
         <artifactId>jarbase-parent</artifactId>
         <version>0.1.0-SNAPSHOT</version>
     </parent>
@@ -21,7 +21,7 @@
     <dependencies>
         <!-- cli depends on core, never the other way round. -->
         <dependency>
-            <groupId>dev.wajdan.jarbase</groupId>
+            <groupId>io.github.thedistortedwajdan.jarbase</groupId>
             <artifactId>jarbase-core</artifactId>
             <version>${project.version}</version>
         </dependency>
@@ -66,7 +66,7 @@
                                 <!-- Keeps the agent-adapter list (META-INF/services) intact inside the bundled jar. -->
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ServicesResourceTransformer"/>
                                 <transformer implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                                    <mainClass>dev.wajdan.jarbase.cli.Main</mainClass>
+                                    <mainClass>io.github.thedistortedwajdan.jarbase.cli.Main</mainClass>
                                     <manifestEntries>
                                         <Implementation-Version>${project.version}</Implementation-Version>
                                     </manifestEntries>
