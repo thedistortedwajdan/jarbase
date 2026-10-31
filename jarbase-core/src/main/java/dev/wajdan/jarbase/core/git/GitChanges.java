@@ -6,6 +6,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.TreeSet;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -24,6 +25,62 @@ public final class GitChanges {
     /** The top folder of the repository that contains {@code anyFolder}. */
     public static Path repoRoot(Path anyFolder) {
         return Path.of(run(anyFolder, "rev-parse", "--show-toplevel").trim());
+    }
+
+    /** The commit currently checked out, or {@code "none"} in a repository with no commits yet. */
+    public static String headCommit(Path repoRoot) {
+        return tryRun(repoRoot, "rev-parse", "--verify", "--quiet", "HEAD").orElse("none");
+    }
+
+    /** A file inside the repository's private {@code .git} folder, so it is never committed. */
+    public static Path gitPath(Path repoRoot, String name) {
+        Path path = Path.of(run(repoRoot, "rev-parse", "--git-path", name).trim());
+        return path.isAbsolute() ? path : repoRoot.resolve(path);
+    }
+
+    /**
+     * The branch most pushes are measured against: {@code origin/HEAD} when the repository has a remote,
+     * otherwise a local {@code main} or {@code master}.
+     */
+    public static String defaultBranch(Path repoRoot) {
+        var remoteHead = tryRun(repoRoot, "symbolic-ref", "--short", "refs/remotes/origin/HEAD");
+        if (remoteHead.isPresent()) {
+            return remoteHead.get();
+        }
+        for (String candidate : List.of("main", "master")) {
+            if (tryRun(repoRoot, "rev-parse", "--verify", "--quiet", "refs/heads/" + candidate).isPresent()) {
+                return candidate;
+            }
+        }
+        return "main";
+    }
+
+    /**
+     * What to compare against when the current work is about to be pushed. Normally the default branch.
+     * When you are working directly on the default branch, it is the branch's upstream, so only
+     * commits that are not pushed yet count.
+     */
+    public static String pushBase(Path repoRoot) {
+        String defaultBranch = defaultBranch(repoRoot);
+        String current = tryRun(repoRoot, "branch", "--show-current").orElse("");
+        String defaultShortName = defaultBranch.contains("/")
+                ? defaultBranch.substring(defaultBranch.indexOf('/') + 1)
+                : defaultBranch;
+        if (current.equals(defaultShortName)
+                && tryRun(repoRoot, "rev-parse", "--verify", "--quiet", "@{upstream}").isPresent()) {
+            return "@{upstream}";
+        }
+        return defaultBranch;
+    }
+
+    /** Runs git and returns trimmed output, or nothing if git fails or prints nothing. */
+    private static Optional<String> tryRun(Path dir, String... args) {
+        try {
+            String output = run(dir, args).trim();
+            return output.isEmpty() ? Optional.empty() : Optional.of(output);
+        } catch (GitException e) {
+            return Optional.empty();
+        }
     }
 
     /**

@@ -109,6 +109,34 @@ class GitChangesTest {
     }
 
     @Test
+    void defaultBranchFallsBackToLocalMain() throws Exception {
+        assertThat(GitChanges.defaultBranch(repo)).isEqualTo("main");
+    }
+
+    @Test
+    void pushBaseOnAFeatureBranchIsTheDefaultBranch() throws Exception {
+        git("checkout", "-q", "-b", "feature");
+
+        assertThat(GitChanges.pushBase(repo)).isEqualTo("main");
+    }
+
+    @Test
+    void headCommitIsAShaAndNoneWhenThereAreNoCommits(@TempDir Path emptyRepo) throws Exception {
+        assertThat(GitChanges.headCommit(repo)).matches("[0-9a-f]{40}");
+
+        new ProcessBuilder("git", "init", "-q").directory(emptyRepo.toFile()).start().waitFor();
+        assertThat(GitChanges.headCommit(emptyRepo)).isEqualTo("none");
+    }
+
+    @Test
+    void gitPathPointsInsideTheGitFolder() {
+        Path path = GitChanges.gitPath(repo, "jarbase-test");
+
+        assertThat(path.getFileName().toString()).isEqualTo("jarbase-test");
+        assertThat(path.toString()).contains(".git");
+    }
+
+    @Test
     void unknownBaseGivesAClearError() {
         assertThatThrownBy(() -> GitChanges.changedFiles(repo, "no-such-branch", false))
                 .isInstanceOf(GitException.class)
