@@ -27,6 +27,14 @@ public final class GitChanges {
         return Path.of(run(anyFolder, "rev-parse", "--show-toplevel").trim());
     }
 
+    /**
+     * Every file git knows about or would add: tracked files plus new files that are not ignored.
+     * Used to check that docs point at code and files that exist.
+     */
+    public static List<String> repoFiles(Path repoRoot) {
+        return splitNul(run(repoRoot, "ls-files", "-z", "--cached", "--others", "--exclude-standard"));
+    }
+
     /** The commit currently checked out, or {@code "none"} in a repository with no commits yet. */
     public static String headCommit(Path repoRoot) {
         return tryRun(repoRoot, "rev-parse", "--verify", "--quiet", "HEAD").orElse("none");

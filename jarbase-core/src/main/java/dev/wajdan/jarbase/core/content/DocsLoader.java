@@ -22,6 +22,15 @@ public final class DocsLoader {
      */
     public static List<Page> load(Path repoRoot, String docsFolder) {
         Path root = repoRoot.toAbsolutePath().normalize();
+        return markdownFiles(root, docsFolder).stream().map(path -> readPage(root, path)).toList();
+    }
+
+    /**
+     * @return the repo-relative path of every {@code .md} file under the docs folder, sorted, with forward
+     *         slashes. Empty if the folder does not exist.
+     */
+    public static List<String> markdownFiles(Path repoRoot, String docsFolder) {
+        Path root = repoRoot.toAbsolutePath().normalize();
         Path docs = root.resolve(docsFolder).normalize();
         if (!Files.isDirectory(docs)) {
             return List.of();
@@ -33,10 +42,18 @@ public final class DocsLoader {
                     .filter(file -> file.getFileName().toString().toLowerCase().endsWith(".md"))
                     .map(file -> toRepoPath(root, file))
                     .sorted()
-                    .map(path -> readPage(root, path))
                     .toList();
         } catch (IOException e) {
             throw new UncheckedIOException("Could not read the docs folder " + docs, e);
+        }
+    }
+
+    /** Reads one page by its repo-relative path. */
+    public static String readText(Path repoRoot, String repoPath) {
+        try {
+            return Files.readString(repoRoot.toAbsolutePath().normalize().resolve(repoPath), StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new UncheckedIOException("Could not read " + repoPath, e);
         }
     }
 

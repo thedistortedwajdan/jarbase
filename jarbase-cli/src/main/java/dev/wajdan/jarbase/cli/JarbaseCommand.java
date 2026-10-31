@@ -9,7 +9,7 @@ import picocli.CommandLine.Command;
         mixinStandardHelpOptions = true,
         versionProvider = VersionProvider.class,
         description = "Living documentation that keeps up with your code.",
-        subcommands = {InstallCommand.class, AffectedCommand.class, HookCommand.class})
+        subcommands = {InstallCommand.class, AffectedCommand.class, ValidateCommand.class, HookCommand.class})
 public class JarbaseCommand implements Runnable {
 
     @CommandLine.Spec
