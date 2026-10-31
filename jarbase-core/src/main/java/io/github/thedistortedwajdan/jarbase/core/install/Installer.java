@@ -15,7 +15,10 @@ import java.util.List;
 public final class Installer {
 
     private static final String HOOK_SCRIPT = Jarbase.HOME_FOLDER + "/jarbase-hook.sh";
+    private static final String LAUNCHER = Jarbase.HOME_FOLDER + "/jarbase";
+    private static final String VERSION_FILE = Jarbase.HOME_FOLDER + "/version";
     private static final String HOME_GITIGNORE = Jarbase.HOME_FOLDER + "/.gitignore";
+    private static final String HOME_GITATTRIBUTES = Jarbase.HOME_FOLDER + "/.gitattributes";
     private static final String JAR = Jarbase.HOME_FOLDER + "/jarbase.jar";
 
     private Installer() {
@@ -30,11 +33,18 @@ public final class Installer {
     public static List<Change> install(Path root, String docsFolder, List<AgentAdapter> adapters, InstallAssets assets) {
         List<Change> changes = new ArrayList<>();
 
-        // 1. the tool itself, inside the project
+        // 1. the tool's scripts, inside the project (committed, so every clone has them)
         changes.add(ProjectFiles.write(root, HOOK_SCRIPT, assets.hookScript()));
+        changes.add(ProjectFiles.write(root, LAUNCHER, assets.launcherScript()));
+        // the scripts must keep Unix line endings even when git is set to convert them on Windows
+        changes.add(ProjectFiles.write(root, HOME_GITATTRIBUTES, "* text eol=lf\n"));
         // the jar is a build artifact: kept out of git so we never commit a binary by accident
         changes.add(ProjectFiles.write(root, HOME_GITIGNORE, "jarbase.jar\n"));
-        changes.add(copyJar(root, assets.jarSource()));
+        if (assets.version() != null) {
+            changes.add(ProjectFiles.write(root, VERSION_FILE, assets.version() + "\n"));
+        } else {
+            changes.add(copyJar(root, assets.jarSource()));
+        }
 
         // 2. the instructions every agent reads
         String agentsMd = ProjectFiles.read(root, "AGENTS.md").orElse("");

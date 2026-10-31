@@ -20,7 +20,8 @@ class InstallerTest {
     Path project;
 
     private final List<AgentAdapter> claude = List.of(new ClaudeCodeAdapter());
-    private final InstallAssets assets = new InstallAssets("#!/bin/sh\necho hook\n", null);
+    private final InstallAssets assets =
+            new InstallAssets("#!/bin/sh\necho hook\n", "#!/bin/sh\necho launcher\n", null, null);
 
     private String read(String path) throws IOException {
         return Files.readString(project.resolve(path));
@@ -40,11 +41,51 @@ class InstallerTest {
 
         assertThat(read(".jarbase/jarbase-hook.sh")).isEqualTo("#!/bin/sh\necho hook\n");
         assertThat(read(".jarbase/.gitignore")).isEqualTo("jarbase.jar\n");
-        assertThat(read("AGENTS.md")).contains("<!-- jarbase:start -->", "docs/", "java -jar .jarbase/jarbase.jar affected");
+        assertThat(read("AGENTS.md")).contains("<!-- jarbase:start -->", "docs/", "sh .jarbase/jarbase affected");
         assertThat(read("CLAUDE.md")).isEqualTo("@AGENTS.md\n");
         assertThat(read("docs/index.md")).contains("title: Introduction");
         assertThat(changes).extracting(Change::path).contains(
                 ".jarbase/jarbase-hook.sh", "AGENTS.md", "CLAUDE.md", ".claude/settings.json", "docs/index.md");
+    }
+
+    @Test
+    void launcherAndLineEndingRulesAreInstalled() throws IOException {
+        install();
+
+        assertThat(read(".jarbase/jarbase")).isEqualTo("#!/bin/sh\necho launcher\n");
+        assertThat(read(".jarbase/.gitattributes")).isEqualTo("* text eol=lf\n");
+    }
+
+    @Test
+    void mavenModeWritesTheVersionAndNeverTouchesAJar() throws IOException {
+        InstallAssets maven = new InstallAssets("#!/bin/sh\necho hook\n", "#!/bin/sh\necho launcher\n", null, "1.2.3");
+
+        List<Change> changes = Installer.install(project, "docs", claude, maven);
+
+        assertThat(read(".jarbase/version")).isEqualTo("1.2.3\n");
+        assertThat(changes).extracting(Change::path).doesNotContain(".jarbase/jarbase.jar");
+        assertThat(project.resolve(".jarbase/jarbase.jar")).doesNotExist();
+    }
+
+    @Test
+    void changingTheMavenVersionUpdatesTheVersionFile() throws IOException {
+        InstallAssets v1 = new InstallAssets("h\n", "l\n", null, "1.0.0");
+        InstallAssets v2 = new InstallAssets("h\n", "l\n", null, "1.1.0");
+        Installer.install(project, "docs", claude, v1);
+
+        List<Change> changes = Installer.install(project, "docs", claude, v2);
+
+        assertThat(read(".jarbase/version")).isEqualTo("1.1.0\n");
+        assertThat(changes).anyMatch(c -> c.path().equals(".jarbase/version") && c.kind() == Change.Kind.UPDATED);
+    }
+
+    @Test
+    void bundledScriptsHaveUnixLineEndingsAndTheRightShebang() {
+        InstallAssets bundled = InstallAssets.bundled(null, "0.1.0");
+
+        assertThat(bundled.hookScript()).startsWith("#!/bin/sh").doesNotContain("\r");
+        assertThat(bundled.launcherScript()).startsWith("#!/bin/sh").doesNotContain("\r");
+        assertThat(bundled.launcherScript()).contains("io/github/thedistortedwajdan/jarbase/jarbase-cli");
     }
 
     @Test
@@ -171,7 +212,7 @@ class InstallerTest {
 
         Path fakeJar = elsewhere.resolve("jarbase-all.jar");
         Files.writeString(fakeJar, "pretend this is a jar");
-        InstallAssets withJar = new InstallAssets("#!/bin/sh\necho hook\n", fakeJar);
+        InstallAssets withJar = new InstallAssets("#!/bin/sh\necho hook\n", "#!/bin/sh\necho launcher\n", fakeJar, null);
 
         List<Change> first = Installer.install(project, "docs", claude, withJar);
         List<Change> second = Installer.install(project, "docs", claude, withJar);

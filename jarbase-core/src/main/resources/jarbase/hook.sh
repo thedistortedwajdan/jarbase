@@ -6,7 +6,6 @@
 # a push or a pull-request creation. Everything else exits at once.
 #
 # Usage (what the agent's hook runs):   jarbase-hook.sh [agent-id]      (default: claude-code)
-# The jar is found via $JARBASE_JAR, or "jarbase.jar" next to this script.
 
 agent="${1:-claude-code}"
 payload=$(cat)
@@ -16,7 +15,11 @@ case "$payload" in
   *) exit 0 ;;
 esac
 
-jar="${JARBASE_JAR:-$(dirname "$0")/jarbase.jar}"
-[ -f "$jar" ] || exit 0
+dir=$(cd "$(dirname "$0")" && pwd)
+printf '%s' "$payload" | sh "$dir/jarbase" hook pre-push --agent "$agent"
+status=$?
 
-printf '%s' "$payload" | java -jar "$jar" hook pre-push --agent "$agent"
+# 127 means the jarbase jar is not on this machine yet (the launcher already explained why).
+# That must never stop a push.
+[ "$status" -eq 127 ] && exit 0
+exit "$status"

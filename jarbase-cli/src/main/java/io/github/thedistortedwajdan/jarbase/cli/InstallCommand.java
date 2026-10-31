@@ -6,11 +6,8 @@ import io.github.thedistortedwajdan.jarbase.core.git.GitChanges;
 import io.github.thedistortedwajdan.jarbase.core.install.Change;
 import io.github.thedistortedwajdan.jarbase.core.install.InstallAssets;
 import io.github.thedistortedwajdan.jarbase.core.install.Installer;
-import java.io.IOException;
-import java.io.InputStream;
 import java.io.PrintWriter;
 import java.net.URISyntaxException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
@@ -31,8 +28,7 @@ public class InstallCommand implements Callable<Integer> {
     CommandSpec spec;
 
     @Option(names = "--agent", split = ",", defaultValue = "claude-code",
-            description = "Coding agent(s) to set up, comma separated. Available: ${COMPLETION-CANDIDATES}. Default: ${DEFAULT-VALUE}.",
-            completionCandidates = AgentIds.class)
+            description = "Coding agent(s) to set up, comma separated. Default: ${DEFAULT-VALUE}.")
     List<String> agents;
 
     @Option(names = "--docs", defaultValue = "docs", description = "Docs folder relative to the repository root.")
@@ -43,7 +39,7 @@ public class InstallCommand implements Callable<Integer> {
     Path repo;
 
     @Override
-    public Integer call() throws IOException {
+    public Integer call() {
         List<AgentAdapter> adapters = new ArrayList<>();
         for (String id : agents) {
             adapters.add(AgentAdapters.find(id).orElseThrow(() -> new IllegalArgumentException(
@@ -51,8 +47,7 @@ public class InstallCommand implements Callable<Integer> {
         }
 
         Path root = GitChanges.repoRoot(repo);
-        InstallAssets assets = new InstallAssets(readHookScript(), ownJar());
-        List<Change> changes = Installer.install(root, docsFolder, adapters, assets);
+        List<Change> changes = Installer.install(root, docsFolder, adapters, InstallAssets.bundled(ownJar(), null));
 
         PrintWriter out = spec.commandLine().getOut();
         out.println("jarbase installed in " + root);
@@ -67,16 +62,6 @@ public class InstallCommand implements Callable<Integer> {
         return 0;
     }
 
-    private static String readHookScript() throws IOException {
-        try (InputStream in = InstallCommand.class.getResourceAsStream("/jarbase-hook.sh")) {
-            if (in == null) {
-                throw new IllegalStateException("the hook script is missing from this build");
-            }
-            // normalise to Unix line endings: the script runs under sh, even on Windows
-            return new String(in.readAllBytes(), StandardCharsets.UTF_8).replace("\r\n", "\n");
-        }
-    }
-
     /** The jar this program is running from, or null when running from compiled classes. */
     private static Path ownJar() {
         try {
@@ -84,13 +69,6 @@ public class InstallCommand implements Callable<Integer> {
             return location.toString().endsWith(".jar") ? location : null;
         } catch (URISyntaxException | RuntimeException e) {
             return null;
-        }
-    }
-
-    /** Lets picocli show the real list of agent ids in --help. */
-    static final class AgentIds extends ArrayList<String> {
-        AgentIds() {
-            super(AgentAdapters.ids());
         }
     }
 }
