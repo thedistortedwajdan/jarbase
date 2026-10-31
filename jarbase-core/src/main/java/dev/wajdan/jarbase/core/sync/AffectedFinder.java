@@ -37,7 +37,8 @@ public final class AffectedFinder {
             }
 
             if (!matchedFiles.isEmpty()) {
-                affected.add(new AffectedPage(page, List.copyOf(matchedSources), List.copyOf(matchedFiles)));
+                boolean updated = changed.contains(SourceGlob.normalizePath(page.path()));
+                affected.add(new AffectedPage(page, List.copyOf(matchedSources), List.copyOf(matchedFiles), updated));
             }
         }
 

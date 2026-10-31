@@ -100,6 +100,15 @@ class GitChangesTest {
     }
 
     @Test
+    void repoRootIsFoundFromASubfolder() throws Exception {
+        write("src/deep/Inner.java", "class Inner {}");
+
+        Path found = GitChanges.repoRoot(repo.resolve("src/deep"));
+
+        assertThat(found.toRealPath()).isEqualTo(repo.toRealPath());
+    }
+
+    @Test
     void unknownBaseGivesAClearError() {
         assertThatThrownBy(() -> GitChanges.changedFiles(repo, "no-such-branch", false))
                 .isInstanceOf(GitException.class)

@@ -21,6 +21,11 @@ public final class GitChanges {
     private GitChanges() {
     }
 
+    /** The top folder of the repository that contains {@code anyFolder}. */
+    public static Path repoRoot(Path anyFolder) {
+        return Path.of(run(anyFolder, "rev-parse", "--show-toplevel").trim());
+    }
+
     /**
      * Files that differ from {@code base}, measured from the point where the current branch split off
      * from it (so later commits on {@code base} are not counted as your changes).

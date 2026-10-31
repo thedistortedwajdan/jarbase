@@ -28,6 +28,7 @@ class AffectedFinderTest {
                 List.of("src/main/java/com/acme/billing/Invoice.java"));
 
         assertThat(result).hasSize(1);
+        assertThat(result.get(0).updated()).isFalse();
         assertThat(result.get(0).page().path()).isEqualTo("docs/billing.md");
         assertThat(result.get(0).matchedSources()).containsExactly("src/main/java/com/acme/billing/**");
         assertThat(result.get(0).changedFiles()).containsExactly("src/main/java/com/acme/billing/Invoice.java");
@@ -53,6 +54,18 @@ class AffectedFinderTest {
 
         assertThat(result.get(0).changedFiles()).containsExactly(
                 "src/main/java/com/acme/billing/A.java", "src/main/java/com/acme/billing/B.java");
+    }
+
+    @Test
+    void pageIsMarkedUpdatedWhenItsOwnFileChangedToo() {
+        List<AffectedPage> result = AffectedFinder.find(
+                List.of(billing, users),
+                List.of("src/main/java/com/acme/billing/Invoice.java", "docs/billing.md",
+                        "src/main/java/com/acme/users/User.java"));
+
+        assertThat(result).extracting(a -> a.page().path()).containsExactly("docs/billing.md", "docs/users.md");
+        assertThat(result.get(0).updated()).isTrue();
+        assertThat(result.get(1).updated()).isFalse();
     }
 
     @Test
