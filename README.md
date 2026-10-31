@@ -104,6 +104,8 @@ Agent-specific behaviour lives behind one interface, `AgentAdapter`, so supporti
 ./mvnw verify
 ```
 
+Maintainers: see [RELEASING.md](RELEASING.md) for publishing to Maven Central.
+
 ## Credits
 
 jarbase is inspired by [LaRecipe](https://github.com/saleem-hadad/larecipe) 3, which does this for Laravel apps. jarbase is an independent project for the Java ecosystem and shares no code with it.

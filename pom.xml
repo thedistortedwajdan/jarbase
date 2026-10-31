@@ -12,7 +12,38 @@
     <packaging>pom</packaging>
 
     <name>jarbase</name>
-    <description>Living documentation for Java and Spring Boot apps.</description>
+    <description>Living documentation for Java and Spring Boot apps: blocks a push when code changed but the docs describing it did not.</description>
+    <url>https://github.com/thedistortedwajdan/jarbase</url>
+    <inceptionYear>2026</inceptionYear>
+
+    <!-- Maven Central requires the license, the developer and the source-control details. -->
+    <licenses>
+        <license>
+            <name>MIT License</name>
+            <url>https://opensource.org/license/mit</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <id>thedistortedwajdan</id>
+            <name>thedistortedwajdan</name>
+            <url>https://github.com/thedistortedwajdan</url>
+        </developer>
+    </developers>
+
+    <scm>
+        <connection>scm:git:https://github.com/thedistortedwajdan/jarbase.git</connection>
+        <developerConnection>scm:git:ssh://git@github.com/thedistortedwajdan/jarbase.git</developerConnection>
+        <url>https://github.com/thedistortedwajdan/jarbase</url>
+        <tag>HEAD</tag>
+    </scm>
+
+    <issueManagement>
+        <system>GitHub Issues</system>
+        <url>https://github.com/thedistortedwajdan/jarbase/issues</url>
+    </issueManagement>
 
     <properties>
         <!-- Compile for Java 21 bytecode, even though we build with JDK 25. -->
@@ -41,4 +72,81 @@
         <module>jarbase-cli</module>
         <module>jarbase-maven-plugin</module>
     </modules>
+
+    <profiles>
+        <!--
+            Everything Maven Central demands, kept out of normal builds so day-to-day work stays fast:
+            sources and javadoc jars, GPG signatures, and the upload to the Central Portal.
+            Used as:  ./mvnw -Prelease deploy      (see RELEASING.md)
+        -->
+        <profile>
+            <id>release</id>
+            <build>
+                <plugins>
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-source-plugin</artifactId>
+                        <version>3.4.0</version>
+                        <executions>
+                            <execution>
+                                <id>attach-sources</id>
+                                <goals><goal>jar-no-fork</goal></goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-javadoc-plugin</artifactId>
+                        <version>3.12.0</version>
+                        <configuration>
+                            <release>${maven.compiler.release}</release>
+                            <!-- check the javadoc is valid, but do not nag about members without a comment -->
+                            <doclint>all,-missing</doclint>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>attach-javadocs</id>
+                                <goals><goal>jar</goal></goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <!-- Signs every file with your GPG key. Central rejects unsigned files. -->
+                    <plugin>
+                        <groupId>org.apache.maven.plugins</groupId>
+                        <artifactId>maven-gpg-plugin</artifactId>
+                        <version>3.2.8</version>
+                        <executions>
+                            <execution>
+                                <id>sign-artifacts</id>
+                                <phase>verify</phase>
+                                <goals><goal>sign</goal></goals>
+                            </execution>
+                        </executions>
+                        <configuration>
+                            <gpgArguments>
+                                <arg>--pinentry-mode</arg>
+                                <arg>loopback</arg>
+                            </gpgArguments>
+                        </configuration>
+                    </plugin>
+
+                    <!-- Uploads all modules as one bundle to the Central Portal. -->
+                    <plugin>
+                        <groupId>org.sonatype.central</groupId>
+                        <artifactId>central-publishing-maven-plugin</artifactId>
+                        <version>0.12.0</version>
+                        <extensions>true</extensions>
+                        <configuration>
+                            <!-- the id of the server entry in ~/.m2/settings.xml that holds your Portal token -->
+                            <publishingServerId>central</publishingServerId>
+                            <!-- false = the upload waits in the Portal until you press "Publish" there -->
+                            <autoPublish>false</autoPublish>
+                        </configuration>
+                    </plugin>
+                </plugins>
+            </build>
+        </profile>
+    </profiles>
 </project>
