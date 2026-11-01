@@ -65,7 +65,10 @@ public final class Installer {
         // 5. the git hook, so the check also runs when a person pushes by hand
         changes.add(GitHook.install(root));
 
-        // 6. a first page, only when the project has no docs yet
+        // 6. the strict backstop for pull requests, only for projects that already use GitHub Actions
+        changes.add(CiWorkflow.install(root, docsFolder, assets.version()));
+
+        // 7. a first page, only when the project has no docs yet
         changes.add(starterDocs(root, docsFolder));
         return changes;
     }
