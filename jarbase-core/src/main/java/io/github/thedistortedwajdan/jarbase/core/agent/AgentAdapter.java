@@ -35,6 +35,19 @@ public interface AgentAdapter {
     String render(HookDecision decision);
 
     /**
+     * How to run this agent once, headlessly, to carry out an instruction. This is what lets {@code git push}
+     * update the docs for someone who is coding by hand with no agent session open.
+     *
+     * <p>The command must let the agent read the project and edit files under the docs folder only, and must
+     * not let it ask questions.
+     *
+     * @param instruction the full text of what the agent should do
+     * @param docsFolder  the only folder the agent may edit, relative to the repository root
+     * @return the command, or empty if this agent has no headless mode
+     */
+    Optional<HeadlessCommand> headlessCommand(String instruction, String docsFolder);
+
+    /**
      * Whether the current process is running inside a session of this agent (for example because the agent
      * started the shell command that is running now). The git hook uses this to stay out of the agent's way:
      * the agent has its own hook and instructions.

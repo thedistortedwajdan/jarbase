@@ -1,6 +1,5 @@
 package io.github.thedistortedwajdan.jarbase.cli;
 
-import io.github.thedistortedwajdan.jarbase.core.agent.AgentAdapter;
 import io.github.thedistortedwajdan.jarbase.core.agent.AgentAdapters;
 import io.github.thedistortedwajdan.jarbase.core.config.JarbaseConfig;
 import io.github.thedistortedwajdan.jarbase.core.git.GitChanges;
@@ -60,7 +59,13 @@ public class GitPrePushHookCommand implements Callable<Integer> {
             JarbaseConfig config = JarbaseConfig.load(root, env);
             boolean insideAgent = AgentAdapters.all().stream().anyMatch(a -> a.isRunningInside(env));
 
-            GitPrePush.Result result = GitPrePush.run(root, docsFolder, GitPrePush.parse(stdin), config, insideAgent);
+            String remote = gitArguments == null || gitArguments.isEmpty() ? null : gitArguments.get(0);
+            GitPrePush.Context context = new GitPrePush.Context(root, docsFolder, config, insideAgent, remote, env,
+                    AgentAdapters.all(), message -> {
+                        err.println(message);
+                        err.flush();
+                    });
+            GitPrePush.Result result = GitPrePush.run(context, GitPrePush.parse(stdin));
             if (!result.message().isEmpty()) {
                 err.println(result.message());
                 err.flush();

@@ -1,6 +1,7 @@
 package io.github.thedistortedwajdan.jarbase.core.hook;
 
 import io.github.thedistortedwajdan.jarbase.core.Jarbase;
+import io.github.thedistortedwajdan.jarbase.core.agent.AgentAdapter;
 import io.github.thedistortedwajdan.jarbase.core.config.JarbaseConfig;
 import io.github.thedistortedwajdan.jarbase.core.git.GitChanges;
 import io.github.thedistortedwajdan.jarbase.core.sync.AffectedPage;
@@ -11,6 +12,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 /**
  * The rule behind the git {@code pre-push} hook, which runs for every push no matter who starts it.
@@ -19,7 +21,6 @@ import java.util.Map;
  */
 public final class GitPrePush {
 
-    private static final String ZEROS = "0000000000000000000000000000000000000000";
     private static final String STATE_FILE = "jarbase-git-hook-state";
 
     private GitPrePush() {
@@ -51,6 +52,22 @@ public final class GitPrePush {
         }
     }
 
+    /**
+     * Everything the hook needs to know about this push.
+     *
+     * @param anyFolder   any folder inside the repository being pushed
+     * @param docsFolder  the docs folder relative to the repository root
+     * @param config      jarbase's settings
+     * @param insideAgent true when a coding agent started this push; the agent has its own hook, so this one only warns
+     * @param remote      the remote name or URL git is pushing to, or null if unknown
+     * @param env         the process environment
+     * @param adapters    the coding agents jarbase knows about (used to run one headlessly for {@code onPush=fix})
+     * @param progress    where to report what is happening while an agent works
+     */
+    public record Context(Path anyFolder, String docsFolder, JarbaseConfig config, boolean insideAgent, String remote,
+            Map<String, String> env, List<AgentAdapter> adapters, Consumer<String> progress) {
+    }
+
     /** Reads the lines git writes to the hook's standard input. */
     public static List<RefUpdate> parse(String stdin) {
         List<RefUpdate> updates = new ArrayList<>();
@@ -63,43 +80,61 @@ public final class GitPrePush {
         return updates;
     }
 
-    /**
-     * @param anyFolder   any folder inside the repository being pushed
-     * @param docsFolder  the docs folder relative to the repository root
-     * @param updates     what git is about to push
-     * @param config      jarbase's settings
-     * @param insideAgent true when a coding agent started this push; the agent has its own hook, so this one only warns
-     */
+    /** A check with no coding agent available: it can only warn or block. */
     public static Result run(Path anyFolder, String docsFolder, List<RefUpdate> updates, JarbaseConfig config,
             boolean insideAgent) {
-        Path root = GitChanges.repoRoot(anyFolder);
+        return run(new Context(anyFolder, docsFolder, config, insideAgent, null, Map.of(), List.of(), message -> { }),
+                updates);
+    }
+
+    public static Result run(Context ctx, List<RefUpdate> updates) {
+        Path root = GitChanges.repoRoot(ctx.anyFolder());
 
         Map<String, AffectedPage> stale = new LinkedHashMap<>();
         List<String> pushedShas = new ArrayList<>();
+        List<RefUpdate> branchPushes = new ArrayList<>();
         String base = null;
         for (RefUpdate update : updates) {
             if (!update.isBranchPush()) {
                 continue;
             }
             base = GitChanges.pushBase(root, update.branch());
-            AffectedReport report = AffectedService.run(root, docsFolder, base, update.localSha(), false);
+            AffectedReport report = AffectedService.run(root, ctx.docsFolder(), base, update.localSha(), false);
             report.pages().stream().filter(p -> !p.updated()).forEach(p -> stale.putIfAbsent(p.page().path(), p));
             pushedShas.add(update.localSha());
+            branchPushes.add(update);
         }
         if (stale.isEmpty()) {
             return Result.allow();
         }
 
         List<AffectedPage> pages = List.copyOf(stale.values());
-        JarbaseConfig.OnPush mode = insideAgent ? JarbaseConfig.OnPush.WARN : config.onPush();
+        String pagesKey = pushedShas + "|" + pages.stream().map(p -> p.page().path()).toList();
+        HookState state = new HookState(GitChanges.gitPath(root, STATE_FILE));
+        JarbaseConfig.OnPush mode = ctx.insideAgent() ? JarbaseConfig.OnPush.WARN : ctx.config().onPush();
 
-        if (mode == JarbaseConfig.OnPush.BLOCK) {
-            String key = pushedShas + "|" + pages.stream().map(p -> p.page().path()).toList();
-            HookState state = new HookState(GitChanges.gitPath(root, STATE_FILE));
-            if (!state.alreadyBlocked(key)) {
-                state.markBlocked(key);
-                return new Result(true, blockMessage(pages, base));
+        switch (mode) {
+            case BLOCK -> {
+                if (!state.alreadyBlocked("block|" + pagesKey)) {
+                    state.markBlocked("block|" + pagesKey);
+                    return new Result(true, blockMessage(pages, base));
+                }
             }
+            case FIX -> {
+                // One attempt per situation: if it failed, the next push just goes through with a warning.
+                if (branchPushes.size() == 1 && !state.alreadyBlocked("fix|" + pagesKey)) {
+                    state.markBlocked("fix|" + pagesKey);
+                    DocsFixer.Outcome outcome = DocsFixer.fix(new DocsFixer.Request(root, ctx.docsFolder(),
+                            branchPushes.get(0), ctx.remote(), base, pages, ctx.config(), ctx.env(), ctx.adapters(),
+                            ctx.progress()));
+                    return switch (outcome.status()) {
+                        case PUSHED, READY_FOR_REVIEW -> new Result(true, outcome.message());
+                        case FAILED -> new Result(false, "jarbase: could not update the docs automatically ("
+                                + outcome.message() + ").\n" + warnMessage(pages, base));
+                    };
+                }
+            }
+            case WARN -> { }
         }
         return new Result(false, warnMessage(pages, base));
     }

@@ -4,7 +4,9 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
+import io.github.thedistortedwajdan.jarbase.core.Jarbase;
 import io.github.thedistortedwajdan.jarbase.core.agent.AgentAdapter;
+import io.github.thedistortedwajdan.jarbase.core.agent.HeadlessCommand;
 import io.github.thedistortedwajdan.jarbase.core.agent.PushIntent;
 import io.github.thedistortedwajdan.jarbase.core.hook.HookDecision;
 import io.github.thedistortedwajdan.jarbase.core.install.Change;
@@ -66,6 +68,18 @@ public final class ClaudeCodeAdapter implements AgentAdapter {
         return "{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\","
                 + "\"permissionDecision\":\"deny\","
                 + "\"permissionDecisionReason\":" + JsonText.quote(decision.reason()) + "}}\n";
+    }
+
+    @Override
+    public Optional<HeadlessCommand> headlessCommand(String instruction, String docsFolder) {
+        // `claude -p` runs once and prints the answer; with no text after -p it reads the instruction from stdin. In that mode anything not listed in --allowedTools is
+        // refused rather than asked about, so the agent can only edit the docs folder and read the project.
+        String tools = String.join(",",
+                "Read", "Grep", "Glob",
+                "Edit(" + docsFolder + "/**)", "Write(" + docsFolder + "/**)",
+                "Bash(git diff:*)", "Bash(git log:*)", "Bash(git show:*)",
+                "Bash(" + Jarbase.CLI_COMMAND + ":*)");
+        return Optional.of(new HeadlessCommand("claude", List.of("-p", "--allowedTools", tools), instruction));
     }
 
     @Override

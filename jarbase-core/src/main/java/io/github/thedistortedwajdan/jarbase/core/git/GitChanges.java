@@ -95,6 +95,11 @@ public final class GitChanges {
         return tryRun(repoRoot, "config", "--get", key);
     }
 
+    /** Like {@link #git(Path, String...)}, for commands that may take longer than 30 seconds, such as a push. */
+    public static String git(Path dir, long timeoutSeconds, String... args) {
+        return run(dir, timeoutSeconds, args);
+    }
+
     /** Runs any git command and returns its output; throws {@link GitException} if git fails. */
     public static String git(Path dir, String... args) {
         return run(dir, args);
@@ -157,6 +162,10 @@ public final class GitChanges {
     }
 
     private static String run(Path dir, String... args) {
+        return run(dir, TIMEOUT_SECONDS, args);
+    }
+
+    private static String run(Path dir, long timeoutSeconds, String... args) {
         List<String> command = new ArrayList<>();
         command.add("git");
         command.addAll(List.of(args));
@@ -173,7 +182,7 @@ public final class GitChanges {
         String stdout = readAll(process.getInputStream());
 
         try {
-            if (!process.waitFor(TIMEOUT_SECONDS, TimeUnit.SECONDS)) {
+            if (!process.waitFor(timeoutSeconds, TimeUnit.SECONDS)) {
                 process.destroyForcibly();
                 throw new GitException("git " + String.join(" ", args) + " timed out");
             }
