@@ -4,7 +4,7 @@
 
 jarbase checks that your documentation changes together with the code it describes. Each docs page lists the code it covers. When someone (or a coding agent) is about to push a change that touches that code without updating the page, jarbase stops the push once and names the pages to update.
 
-> **Status: early alpha (0.1.0-SNAPSHOT).** The push check, the `affected` and `validate` commands and the Maven plugin work and are tested. It is not on Maven Central yet, and the docs website part (serving your docs from a Spring Boot app) is not built yet. [Claude Code](https://claude.com/claude-code) is supported first; other agents plug in through a small adapter interface.
+> **Status: early alpha (0.1.0).** The push check, the `affected` and `validate` commands and the Maven plugin work and are tested. It is not on Maven Central yet, and the docs website part (serving your docs from a Spring Boot app) is not built yet. [Claude Code](https://claude.com/claude-code) is supported first; other agents plug in through a small adapter interface.
 
 ## How it works
 
