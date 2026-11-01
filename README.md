@@ -4,7 +4,7 @@
 
 Each docs page lists the code it describes. When you push a change to that code without touching the page, jarbase notices, asks your own coding agent to update the page, and pushes the docs together with the code. If no agent is available, your code still goes up and you get a clear warning about which pages are stale.
 
-> **Status: early alpha (0.1.0).** The checks, the hooks, the auto-fix and the Maven plugin are built and tested. Auto-fix is tested with a stand-in agent and, for [Claude Code](https://claude.com/claude-code), by hand; other agents plug in through a small adapter interface but only Claude Code is implemented. The docs website part (serving your docs from a Spring Boot app) is not built yet.
+> **Status: early alpha (0.1.0).** The checks, the hooks, the auto-fix and the Maven plugin are built and tested, and the whole flow has been tried end to end on Windows with [Claude Code](https://claude.com/claude-code): a plain `git push` updated, committed and pushed the docs. Only Claude Code is implemented as an agent; others plug in through a small adapter interface. The docs website part (serving your docs from a Spring Boot app) is not built yet.
 
 ## How it works
 
