@@ -7,7 +7,7 @@
     <!-- Coordinates: who we are (groupId), what this is (artifactId), which release (version). -->
     <groupId>io.github.thedistortedwajdan.jarbase</groupId>
     <artifactId>jarbase-parent</artifactId>
-    <version>0.1.0</version>
+    <version>0.1.0-SNAPSHOT</version>
     <!-- "pom" packaging = this project builds no jar itself; it only holds shared settings for the modules. -->
     <packaging>pom</packaging>
 
