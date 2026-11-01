@@ -2,6 +2,7 @@ package io.github.thedistortedwajdan.jarbase.core.install;
 
 import io.github.thedistortedwajdan.jarbase.core.Jarbase;
 import io.github.thedistortedwajdan.jarbase.core.agent.AgentAdapter;
+import io.github.thedistortedwajdan.jarbase.core.config.JarbaseConfig;
 import io.github.thedistortedwajdan.jarbase.core.content.DocsLoader;
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -10,6 +11,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /** Sets a project up for jarbase. Safe to run again: it only changes what is out of date. */
 public final class Installer {
@@ -46,17 +48,24 @@ public final class Installer {
             changes.add(copyJar(root, assets.jarSource()));
         }
 
-        // 2. the instructions every agent reads
+        // 2. the team's settings (created once, never overwritten, so edits survive)
+        changes.add(ProjectFiles.createIfAbsent(root, JarbaseConfig.FILE, JarbaseConfig.defaultFileText()));
+        JarbaseConfig config = JarbaseConfig.load(root, Map.of());
+
+        // 3. the instructions every agent reads
         String agentsMd = ProjectFiles.read(root, "AGENTS.md").orElse("");
-        String updated = MarkedBlock.apply(agentsMd, AgentInstructions.block(docsFolder));
+        String updated = MarkedBlock.apply(agentsMd, AgentInstructions.block(docsFolder, config.review()));
         changes.add(ProjectFiles.write(root, "AGENTS.md", updated));
 
-        // 3. each agent's own hook and files
+        // 4. each agent's own hook and files
         for (AgentAdapter adapter : adapters) {
             changes.addAll(adapter.install(root));
         }
 
-        // 4. a first page, only when the project has no docs yet
+        // 5. the git hook, so the check also runs when a person pushes by hand
+        changes.add(GitHook.install(root));
+
+        // 6. a first page, only when the project has no docs yet
         changes.add(starterDocs(root, docsFolder));
         return changes;
     }

@@ -19,8 +19,14 @@ public final class AffectedService {
      * @param includeUncommitted also count edits that are not committed yet
      */
     public static AffectedReport run(Path anyFolder, String docsFolder, String base, boolean includeUncommitted) {
+        return run(anyFolder, docsFolder, base, "HEAD", includeUncommitted);
+    }
+
+    /** Like {@link #run(Path, String, String, boolean)}, for any commit instead of the checked-out one. */
+    public static AffectedReport run(Path anyFolder, String docsFolder, String base, String head,
+            boolean includeUncommitted) {
         Path root = GitChanges.repoRoot(anyFolder);
-        List<String> changed = GitChanges.changedFiles(root, base, includeUncommitted);
+        List<String> changed = GitChanges.changedFiles(root, base, head, includeUncommitted);
         List<Page> pages = DocsLoader.load(root, docsFolder);
         return new AffectedReport(base, AffectedFinder.find(pages, changed));
     }

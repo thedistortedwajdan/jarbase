@@ -49,6 +49,61 @@ class InstallerTest {
     }
 
     @Test
+    void settingsFileIsCreatedOnceAndNeverOverwritten() throws IOException {
+        install();
+        assertThat(read(".jarbase/config.properties")).contains("review=auto").contains("onPush=fix");
+
+        Files.writeString(project.resolve(".jarbase/config.properties"), "review=required\nonPush=block\n");
+        List<Change> second = install();
+
+        assertThat(read(".jarbase/config.properties")).isEqualTo("review=required\nonPush=block\n");
+        assertThat(second).anyMatch(c -> c.path().equals(".jarbase/config.properties") && c.kind() == Change.Kind.UNCHANGED);
+    }
+
+    @Test
+    void defaultReviewModeTellsTheAgentNotToWaitForApproval() throws IOException {
+        install();
+
+        assertThat(read("AGENTS.md"))
+                .contains("do not need to ask the user to approve the docs change first")
+                .doesNotContain("wait for approval");
+    }
+
+    @Test
+    void requiredReviewModeTellsTheAgentToShowTheDiffFirst() throws IOException {
+        Files.createDirectories(project.resolve(".jarbase"));
+        Files.writeString(project.resolve(".jarbase/config.properties"), "review=required\n");
+
+        install();
+
+        assertThat(read("AGENTS.md"))
+                .contains("Show the user the docs diff and wait for approval")
+                .doesNotContain("do not need to ask the user");
+    }
+
+    @Test
+    void changingTheReviewModeAndReinstallingRewritesTheInstructions() throws IOException {
+        install();
+        Files.writeString(project.resolve(".jarbase/config.properties"), "review=required\n");
+
+        install();
+
+        assertThat(read("AGENTS.md")).contains("wait for approval");
+        assertThat(read("AGENTS.md").split("<!-- jarbase:start -->", -1)).hasSize(2); // still one block
+    }
+
+    @Test
+    void theGitHookIsInstalledInAGitRepository() throws Exception {
+        Process init = new ProcessBuilder("git", "init", "-q").directory(project.toFile()).start();
+        assertThat(init.waitFor(30, java.util.concurrent.TimeUnit.SECONDS)).isTrue();
+
+        List<Change> changes = install();
+
+        assertThat(changes).anyMatch(c -> c.path().equals(".git/hooks/pre-push") && c.kind() == Change.Kind.CREATED);
+        assertThat(read(".git/hooks/pre-push")).contains("# jarbase:git-hook");
+    }
+
+    @Test
     void launcherAndLineEndingRulesAreInstalled() throws IOException {
         install();
 

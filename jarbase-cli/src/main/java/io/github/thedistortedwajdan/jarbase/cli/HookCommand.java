@@ -8,7 +8,7 @@ import picocli.CommandLine.Command;
         name = "hook",
         mixinStandardHelpOptions = true,
         description = "Entry points for coding-agent hooks.",
-        subcommands = {PrePushHookCommand.class})
+        subcommands = {PrePushHookCommand.class, GitPrePushHookCommand.class})
 public class HookCommand implements Runnable {
 
     @CommandLine.Spec

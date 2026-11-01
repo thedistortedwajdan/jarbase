@@ -4,6 +4,7 @@ import io.github.thedistortedwajdan.jarbase.core.hook.HookDecision;
 import io.github.thedistortedwajdan.jarbase.core.install.Change;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -32,6 +33,15 @@ public interface AgentAdapter {
      * @return the text to print; empty when the push is allowed and nothing needs to be said
      */
     String render(HookDecision decision);
+
+    /**
+     * Whether the current process is running inside a session of this agent (for example because the agent
+     * started the shell command that is running now). The git hook uses this to stay out of the agent's way:
+     * the agent has its own hook and instructions.
+     *
+     * @param env the process's environment variables
+     */
+    boolean isRunningInside(Map<String, String> env);
 
     /**
      * Registers the hook with this agent and writes any agent-specific files. Must be safe to run twice.

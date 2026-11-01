@@ -12,6 +12,7 @@ import io.github.thedistortedwajdan.jarbase.core.install.ProjectFiles;
 import io.github.thedistortedwajdan.jarbase.core.json.JsonText;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -65,6 +66,12 @@ public final class ClaudeCodeAdapter implements AgentAdapter {
         return "{\"hookSpecificOutput\":{\"hookEventName\":\"PreToolUse\","
                 + "\"permissionDecision\":\"deny\","
                 + "\"permissionDecisionReason\":" + JsonText.quote(decision.reason()) + "}}\n";
+    }
+
+    @Override
+    public boolean isRunningInside(Map<String, String> env) {
+        // Claude Code sets CLAUDECODE=1 in the environment of the shell commands it runs
+        return env.containsKey("CLAUDECODE");
     }
 
     @Override

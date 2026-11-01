@@ -3,11 +3,14 @@ package io.github.thedistortedwajdan.jarbase.cli;
 import io.github.thedistortedwajdan.jarbase.core.agent.AgentAdapter;
 import io.github.thedistortedwajdan.jarbase.core.agent.AgentAdapters;
 import io.github.thedistortedwajdan.jarbase.core.agent.PushIntent;
+import io.github.thedistortedwajdan.jarbase.core.config.JarbaseConfig;
+import io.github.thedistortedwajdan.jarbase.core.git.GitChanges;
 import io.github.thedistortedwajdan.jarbase.core.hook.HookDecision;
 import io.github.thedistortedwajdan.jarbase.core.hook.PrePushCheck;
 import io.github.thedistortedwajdan.jarbase.core.hook.PushDetector;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Path;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.concurrent.Callable;
@@ -68,7 +71,9 @@ public class PrePushHookCommand implements Callable<Integer> {
             return 0;
         }
 
-        HookDecision decision = PrePushCheck.decide(intent.get().workingDirectory(), docsFolder, base);
+        Path root = GitChanges.repoRoot(intent.get().workingDirectory());
+        JarbaseConfig config = JarbaseConfig.load(root, System.getenv());
+        HookDecision decision = PrePushCheck.decide(root, docsFolder, base, config.review());
         spec.commandLine().getOut().print(adapter.render(decision));
         spec.commandLine().getOut().flush();
         return 0;

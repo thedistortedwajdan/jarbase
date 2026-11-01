@@ -69,16 +69,35 @@ public final class GitChanges {
      * commits that are not pushed yet count.
      */
     public static String pushBase(Path repoRoot) {
+        return pushBase(repoRoot, tryRun(repoRoot, "branch", "--show-current").orElse(""));
+    }
+
+    /** Like {@link #pushBase(Path)}, for a named local branch that is about to be pushed. */
+    public static String pushBase(Path repoRoot, String branch) {
         String defaultBranch = defaultBranch(repoRoot);
-        String current = tryRun(repoRoot, "branch", "--show-current").orElse("");
         String defaultShortName = defaultBranch.contains("/")
                 ? defaultBranch.substring(defaultBranch.indexOf('/') + 1)
                 : defaultBranch;
-        if (current.equals(defaultShortName)
-                && tryRun(repoRoot, "rev-parse", "--verify", "--quiet", "@{upstream}").isPresent()) {
-            return "@{upstream}";
+        if (!branch.isEmpty() && branch.equals(defaultShortName)
+                && tryRun(repoRoot, "rev-parse", "--verify", "--quiet", branch + "@{upstream}").isPresent()) {
+            return branch + "@{upstream}";
         }
         return defaultBranch;
+    }
+
+    /** The checked-out branch's name, or empty when HEAD is detached. */
+    public static String currentBranch(Path repoRoot) {
+        return tryRun(repoRoot, "branch", "--show-current").orElse("");
+    }
+
+    /** A git setting such as {@code core.hooksPath}, or empty when it is not set. */
+    public static Optional<String> config(Path repoRoot, String key) {
+        return tryRun(repoRoot, "config", "--get", key);
+    }
+
+    /** Runs any git command and returns its output; throws {@link GitException} if git fails. */
+    public static String git(Path dir, String... args) {
+        return run(dir, args);
     }
 
     /** Runs git and returns trimmed output, or nothing if git fails or prints nothing. */
@@ -101,18 +120,28 @@ public final class GitChanges {
      * @return repo-relative paths with forward slashes, sorted, no duplicates. Renames list both the old and the new path.
      */
     public static List<String> changedFiles(Path repoRoot, String base, boolean includeUncommitted) {
-        String mergeBase = run(repoRoot, "merge-base", base, "HEAD").trim();
+        return changedFiles(repoRoot, base, "HEAD", includeUncommitted);
+    }
+
+    /**
+     * Like {@link #changedFiles(Path, String, boolean)}, for any commit or branch instead of the checked-out one.
+     * Uncommitted edits only make sense for {@code HEAD}, so they are ignored for anything else.
+     *
+     * @param head the commit whose changes are wanted, for example {@code HEAD} or a SHA
+     */
+    public static List<String> changedFiles(Path repoRoot, String base, String head, boolean includeUncommitted) {
+        String mergeBase = run(repoRoot, "merge-base", base, head).trim();
         if (mergeBase.isEmpty()) {
-            throw new GitException("git could not find a common ancestor between '" + base + "' and HEAD");
+            throw new GitException("git could not find a common ancestor between '" + base + "' and " + head);
         }
 
         TreeSet<String> files = new TreeSet<>();
-        if (includeUncommitted) {
+        if (includeUncommitted && head.equals("HEAD")) {
             // working tree vs. the split point: committed + staged + unstaged changes to tracked files
             files.addAll(splitNul(run(repoRoot, "diff", "--name-only", "--no-renames", "-z", mergeBase)));
             files.addAll(splitNul(run(repoRoot, "ls-files", "--others", "--exclude-standard", "-z")));
         } else {
-            files.addAll(splitNul(run(repoRoot, "diff", "--name-only", "--no-renames", "-z", mergeBase, "HEAD")));
+            files.addAll(splitNul(run(repoRoot, "diff", "--name-only", "--no-renames", "-z", mergeBase, head)));
         }
         return List.copyOf(files);
     }
