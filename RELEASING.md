@@ -55,7 +55,7 @@ Use the same version in the `README` snippet.
 ./mvnw -Prelease verify
 ```
 
-You will be asked for the GPG passphrase (or set `MAVEN_GPG_PASSPHRASE`). Check that each module has `-sources.jar`, `-javadoc.jar` and `.asc` signature files in its `target/` folder.
+A dialog window asks for the GPG passphrase once; GPG remembers it for the rest of the build. Check that each module has `-sources.jar`, `-javadoc.jar` and `.asc` signature files in its `target/` folder.
 
 ### 6. Upload
 

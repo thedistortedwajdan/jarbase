@@ -112,7 +112,12 @@
                         </executions>
                     </plugin>
 
-                    <!-- Signs every file with your GPG key. Central rejects unsigned files. -->
+                    <!--
+                        Signs every file with your GPG key. Central rejects unsigned files.
+                        GPG asks for the passphrase itself (a dialog window on Windows) and remembers it for the
+                        rest of the build. For a release from CI, pass the passphrase with MAVEN_GPG_PASSPHRASE and
+                        add a gpgArguments setting that selects the loopback pinentry mode.
+                    -->
                     <plugin>
                         <groupId>org.apache.maven.plugins</groupId>
                         <artifactId>maven-gpg-plugin</artifactId>
@@ -124,12 +129,6 @@
                                 <goals><goal>sign</goal></goals>
                             </execution>
                         </executions>
-                        <configuration>
-                            <gpgArguments>
-                                <arg>--pinentry-mode</arg>
-                                <arg>loopback</arg>
-                            </gpgArguments>
-                        </configuration>
                     </plugin>
 
                     <!-- Uploads all modules as one bundle to the Central Portal. -->
