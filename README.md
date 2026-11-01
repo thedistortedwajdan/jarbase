@@ -1,5 +1,9 @@
 # jarbase
 
+[![Maven Central](https://img.shields.io/maven-central/v/io.github.thedistortedwajdan.jarbase/jarbase-maven-plugin?label=Maven%20Central)](https://central.sonatype.com/artifact/io.github.thedistortedwajdan.jarbase/jarbase-maven-plugin)
+[![CI](https://github.com/thedistortedwajdan/jarbase/actions/workflows/ci.yml/badge.svg)](https://github.com/thedistortedwajdan/jarbase/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 **Docs that keep up with your code, for Java and Spring Boot projects.**
 
 Each docs page lists the code it describes. When you push a change to that code without touching the page, jarbase notices, asks your own coding agent to update the page, and pushes the docs together with the code. If no agent is available, your code still goes up and you get a clear warning about which pages are stale.
