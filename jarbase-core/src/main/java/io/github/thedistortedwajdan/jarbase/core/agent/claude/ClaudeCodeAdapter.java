@@ -76,7 +76,8 @@ public final class ClaudeCodeAdapter implements AgentAdapter {
         // refused rather than asked about, so the agent can only edit the docs folder and read the project.
         String tools = String.join(",",
                 "Read", "Grep", "Glob",
-                "Edit(" + docsFolder + "/**)", "Write(" + docsFolder + "/**)",
+                // Claude Code has only Edit(path) rules; they cover every file-editing tool, including creating files
+                "Edit(" + docsFolder + "/**)",
                 "Bash(git diff:*)", "Bash(git log:*)", "Bash(git show:*)",
                 "Bash(" + Jarbase.CLI_COMMAND + ":*)");
         return Optional.of(new HeadlessCommand("claude", List.of("-p", "--allowedTools", tools), instruction));

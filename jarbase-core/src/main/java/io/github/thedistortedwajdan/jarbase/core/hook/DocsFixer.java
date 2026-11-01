@@ -275,8 +275,18 @@ public final class DocsFixer {
         return path.startsWith(docs + "/");
     }
 
-    private static String oneLine(String text) {
-        String line = text.strip().replaceAll("\\s+", " ");
+    /**
+     * One short line of plain ASCII. Console encodings differ (an em dash from the agent shows up as garbage in a
+     * Windows terminal), so anything that is not plain ASCII is simplified.
+     */
+    static String oneLine(String text) {
+        String line = text.strip()
+                .replace('—', '-').replace('–', '-')
+                .replace('‘', '\'').replace('’', '\'')
+                .replace('“', '"').replace('”', '"')
+                .replaceAll("[^\\x20-\\x7E]", " ")
+                .replaceAll("\\s+", " ")
+                .strip();
         return line.length() <= 300 ? line : line.substring(0, 300) + "...";
     }
 }
